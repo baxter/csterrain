@@ -15,6 +15,8 @@ class @HeightMap
 		@reset()
 	
 	reset: () ->
+		@queue = []
+				
 		@map = for x in [1..@size]
 			null for y in [1..@size]
 		
@@ -65,7 +67,7 @@ class @HeightMap
 	#
 	# I wanted to say something like `@diamond_square( @pop() )` but that
 	# didn't work...
-	step: (callback) ->
+	step: () ->
 		s = @pop()
 		@diamond_square(
 			s.start_x,
@@ -74,11 +76,10 @@ class @HeightMap
 			s.end_y,
 			s.base_height
 		)
-		callback() if callback?
 	
 	# Keep calling step() until there's nothing left in the queue.
-	run: (callback) ->
-		@step(callback) while @remaining()
+	run: () ->
+		@step() while @remaining()
 		null
 	
 	# The diamond square algorithm works on a particular region in 2 steps:

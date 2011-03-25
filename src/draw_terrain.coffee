@@ -12,9 +12,9 @@ canvas_height = 530
 # tile_width    = 16
 # tile_height   = 12
 # size          = 32 
-tile_width    = 64
-tile_height   = 48
-size          = 8
+tile_width    = 32
+tile_height   = 24
+size          = 16
 multiplier    = 0.35
 start_x       = canvas_width / 2
 start_y       = 48
@@ -43,6 +43,19 @@ start_y       = 48
 		]
 			@context.__proto__[f] = chain(@context.__proto__[f])
 	null	
+
+@draw_run = () ->
+	@interval_id = setInterval(@draw_step,10)
+
+@draw_step = () ->
+	@height_map.step()
+	@draw()
+	if !@height_map.remaining()
+		clearInterval(@interval_id)
+
+@draw_reset = () ->
+	@height_map.reset()
+	@draw()
 
 # Given a function `f`, chain will return a new function that
 # is identical except that, if no value is returned, `this` will be 
