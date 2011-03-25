@@ -15,7 +15,8 @@ class @HeightMap
 		@reset()
 	
 	reset: () ->
-		@queue = []
+		while @remaining()
+			@pop()
 				
 		@map = for x in [1..@size]
 			null for y in [1..@size]
@@ -51,12 +52,13 @@ class @HeightMap
 	
 	# Pop a set of parameters from the start of the queue.
 	pop: () ->
-		@queue.shift()
+		if @queue?
+			@queue.shift()
 	
 	# Return `true` if there are any parameters still in the queue, otherwise
 	# return `false`.
 	remaining: () ->
-		if @queue.length > 0
+		if @queue? && @queue.length > 0
 			true
 		else
 			false
