@@ -5,8 +5,14 @@
     <script src="lib/generate_terrain.js"></script>
     <script src="lib/draw_terrain.js"></script>
     <title>Terrain</title>
+    <style>
+      body { background: #EBE4E0; }
+    </style>
   </head>
-  <body id="index" onload="">
-    <canvas id="terrain" width="530" height="400"></canvas>
+  <body id="index" onload="javascript:initialise();draw()">
+    <canvas id="terrain" width="530" height="530"></canvas>
+    <a href="javascript:height_map.step(draw);">Step</a>
+    <a href="javascript:height_map.run(draw);">Run</a>
+    <a href="javascript:height_map.reset();draw();">Reset</a>
   </body>
 </html>

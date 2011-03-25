@@ -14,6 +14,22 @@ class @HeightMap
 		@mid_value = Math.floor ((@low_value + @high_value) / 2)
 		@reset()
 	
+	reset: () ->
+		@map = for x in [1..@size]
+			null for y in [1..@size]
+		
+		centre_cell = Math.floor(@size/2)
+
+		@map[0][0] = @map[0][@size - 1] = @map[@size - 1][0] = @map[@size - 1][@size - 1] = @mid_value
+
+		@push {
+			start_x:     0,
+			start_y:     0,
+			end_x:       @size - 1,
+			end_y:       @size - 1,
+			base_height: @mid_value
+		}
+	
 	# Get the value of the cell at [x, y].
 	get_cell: (x, y) ->
 		@map[y][x]
@@ -61,24 +77,9 @@ class @HeightMap
 		callback() if callback?
 	
 	# Keep calling step() until there's nothing left in the queue.
-	run: () ->
-		@step() while @remaining()
-	
-	reset: () ->
-		@map = for x in [1..@size]
-			null for y in [1..@size]
-		
-		centre_cell = Math.floor(@size/2)
-
-		@map[0][0] = @map[0][@size - 1] = @map[@size - 1][0] = @map[@size - 1][@size - 1] = @mid_value
-
-		@push {
-			start_x:     0,
-			start_y:     0,
-			end_x:       @size - 1,
-			end_y:       @size - 1,
-			base_height: @mid_value / 2
-		}
+	run: (callback) ->
+		@step(callback) while @remaining()
+		null
 	
 	# The diamond square algorithm works on a particular region in 2 steps:
 	diamond_square: (left, top, right, bottom, base_height) ->
@@ -125,8 +126,8 @@ class @HeightMap
 	# Return an object representing four points.
 	tile: (x, y) ->
 		{
-			nw: @get_cell(x,   y  ) || @mid_value
-			ne: @get_cell(x+1, y  ) || @mid_value
-			sw: @get_cell(x,   y+1) || @mid_value
-			se: @get_cell(x+1, y+1) || @mid_value
+			nw: @get_cell(x,   y  )
+			ne: @get_cell(x+1, y  )
+			sw: @get_cell(x,   y+1)
+			se: @get_cell(x+1, y+1)
 		}
