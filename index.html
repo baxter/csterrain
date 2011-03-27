@@ -7,12 +7,15 @@
     <title>Terrain</title>
     <style>
       body { background: #EBE4E0; }
+      body, input { font-family: 'Helvetica Neue'; font-weight: 200; font-size: 1.2em; }
     </style>
   </head>
   <body id="index" onload="javascript:initialise();draw()">
-    <canvas id="terrain" width="530" height="530"></canvas>
-    <a href="javascript:draw_step();">Step</a>
-    <a href="javascript:draw_run();">Run</a>
-    <a href="javascript:draw_reset();">Reset</a>
+    <p style="text-align: center;">
+      <canvas id="terrain" width="530" height="430"></canvas><br />
+      <a href="javascript:draw_step();">Step</a> &mdash;
+      <a href="javascript:draw_run();">Run</a> &mdash;
+      <a href="javascript:draw_reset();">Reset</a>
+    </p>
   </body>
 </html>

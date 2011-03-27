@@ -6,24 +6,29 @@
 # a point on a map and each number represents the height of that grid.
 class @HeightMap
 
-	# Create a 2D array of size × size filled with zeroes. Initialise the 
-	# centre and corner points to reasonable starting values. Push an object
-	# to the queue containing the parameters needed for the first call to
-	# the diamond_square method.
+	# Initialise the height map with a `size` which must be 2<sup>n</sup>+1.
+	# Call the `reset` function to put the height_map into a state that is ready
+	# for terrain generation.
 	constructor: (@size, @low_value=0, @high_value=255) ->
-		@mid_value = Math.floor ((@low_value + @high_value) / 2)
+		@mid_value   = Math.floor((@low_value + @high_value) / 2)
+		@centre_cell = Math.floor(@size / 2)
 		@reset()
 	
+	# Pop any remaining objects from the operation queue and discard them.
+	# Create an empty 2D array, size × size,
+	# Set all the corner points to the mid value.
+	# Push a new object to the queue for the first diamond square step.
 	reset: () ->
 		while @remaining()
 			@pop()
 				
 		@map = for x in [1..@size]
 			null for y in [1..@size]
-		
-		centre_cell = Math.floor(@size/2)
 
-		@map[0][0] = @map[0][@size - 1] = @map[@size - 1][0] = @map[@size - 1][@size - 1] = @mid_value
+		@set_nw @mid_value
+		@set_ne @mid_value
+		@set_sw @mid_value
+		@set_se @mid_value
 
 		@push {
 			start_x:     0,
@@ -33,13 +38,26 @@ class @HeightMap
 			base_height: @mid_value
 		}
 	
-	# Get the value of the cell at [x, y].
+	# Get the value of the point at [x, y].
 	get_cell: (x, y) ->
 		@map[y][x]
 	
-	# Set the value of the cell at [x, y] to be v.
+	# Set the value of the point at [x, y] to be v.
 	set_cell: (x, y, v) ->
+		@map[y][x] = v
+	
+	# Set the value of the cell at [x, y] to be v, but only if it isn't already set.
+	# This is useful when we recurse, since some adjacent points might already 
+	# have a value set and I'd rather preserve them.
+	soft_set_cell: (x, y, v) ->
 		@map[y][x] ||= v
+	
+	# Helpers for setting the corner and centre points.
+	set_nw:     (v) -> @set_cell(0, 0, v)
+	set_ne:     (v) -> @set_cell(0, @size - 1, v)
+	set_sw:     (v) -> @set_cell(@size - 1, 0, v)
+	set_se:     (v) -> @set_cell(@size - 1, @size - 1, v)
+	set_centre: (v) -> @set_cell(@centre_cell, @centre_cell, v)
 	
 	# Push a set of parameters to the end of the queue.
 	# If the queue is empty then create it as a single element array.
@@ -66,9 +84,6 @@ class @HeightMap
 	# Perform a single step by popping the first value from the queue
 	# and running the diamon_dquare algorithm with those values as
 	# parameters.
-	#
-	# I wanted to say something like `@diamond_square( @pop() )` but that
-	# didn't work...
 	step: () ->
 		s = @pop()
 		@diamond_square(
@@ -90,9 +105,8 @@ class @HeightMap
 		y_centre = Math.floor (top + bottom) / 2
 		
 		# * The **diamond** step populates the centre point by averaging the 
-		# values at the four corners and adding or subtracting a random amount.
-		
-		height = Math.floor (Math.random() - 0.5) * base_height * 2
+		# values at the four corners and adding or subtracting a random amount
+		# of noise.
 		
 		centre_point_value = Math.floor (
 			(
@@ -101,18 +115,18 @@ class @HeightMap
 				@get_cell(left, bottom) +
 				@get_cell(right, bottom)
 			) / 4
-		) - height
+		) - (Math.floor (Math.random() - 0.5) * base_height * 2)
 		
-		@set_cell(x_centre, y_centre, centre_point_value)
+		@soft_set_cell(x_centre, y_centre, centre_point_value)
 		
 		# * The **square** step populates the North, South, East and West points 
 		# by averaging the North West and North East values, the South East and 
 		# South East values, etc.
 		
-		@set_cell(x_centre, top,      Math.floor (@get_cell(left,  top)    + @get_cell(right, top)   ) / 2 + ((Math.random() - 0.5) * base_height))
-		@set_cell(x_centre, bottom,   Math.floor (@get_cell(left,  bottom) + @get_cell(right, bottom)) / 2 + ((Math.random() - 0.5) * base_height))
-		@set_cell(left,     y_centre, Math.floor (@get_cell(left,  top)    + @get_cell(left,  bottom)) / 2 + ((Math.random() - 0.5) * base_height))
-		@set_cell(right,    y_centre, Math.floor (@get_cell(right, top)    + @get_cell(right, bottom)) / 2 + ((Math.random() - 0.5) * base_height))
+		@soft_set_cell(x_centre, top,      Math.floor (@get_cell(left,  top)    + @get_cell(right, top)   ) / 2 + ((Math.random() - 0.5) * base_height))
+		@soft_set_cell(x_centre, bottom,   Math.floor (@get_cell(left,  bottom) + @get_cell(right, bottom)) / 2 + ((Math.random() - 0.5) * base_height))
+		@soft_set_cell(left,     y_centre, Math.floor (@get_cell(left,  top)    + @get_cell(left,  bottom)) / 2 + ((Math.random() - 0.5) * base_height))
+		@soft_set_cell(right,    y_centre, Math.floor (@get_cell(right, top)    + @get_cell(right, bottom)) / 2 + ((Math.random() - 0.5) * base_height))
 		
 		# Once the centre point and the four side points are populated then, 
 		# provided there are no smaller regions left, split the current region
@@ -126,7 +140,7 @@ class @HeightMap
 			@push { start_x: left,     start_y: y_centre, end_x: x_centre, end_y: bottom,   base_height: base_height }
 			@push { start_x: x_centre, start_y: y_centre, end_x: right,    end_y: bottom,   base_height: base_height }
 	
-	# Return an object representing four points.
+	# This is a helper function that returns an object representing four points.
 	tile: (x, y) ->
 		{
 			nw: @get_cell(x,   y  )
