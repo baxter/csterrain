@@ -8,54 +8,39 @@
 # Size should be a power of 2.
 
 canvas_width  = 530
-canvas_height = 530
-# tile_width    = 16
-# tile_height   = 12
-# size          = 32 
+canvas_height = 430
+
 tile_width    = 32
 tile_height   = 24
 size          = 16
 multiplier    = 0.35
+
 start_x       = canvas_width / 2
 start_y       = 48
 
 # Get the canvas and initialise its context, create the height map with
-# a size of `size + 1`. Go through some of the context's methods and 
+# a size of `size + 1`. Go through some of the context's functions and 
 # make them chainable.
 
 @initialise = () ->
 	canvas = document.getElementById "terrain"
-	if canvas.getContext
-		@context       = canvas.getContext "2d"
-		@height_map    = new HeightMap(size + 1)
-		@context.__proto__["set"] = (k,v) ->
-			this[k] = v
-			this
-		for f in [
-			"arc"
-			"beginPath"
-			"closePath"
-			"fill"
-			"lineTo"
-			"moveTo"
-			"set"
-			"stroke"
-		]
-			@context.__proto__[f] = chain(@context.__proto__[f])
+	@context       = canvas.getContext "2d"
+	@height_map    = new HeightMap(size + 1)
+	@context.__proto__["set"] = (k,v) ->
+		this[k] = v
+		this
+	for f in [
+		"arc"
+		"beginPath"
+		"closePath"
+		"fill"
+		"lineTo"
+		"moveTo"
+		"set"
+		"stroke"
+	]
+		@context.__proto__[f] = chain(@context.__proto__[f])
 	null	
-
-@draw_run = () ->
-	@interval_id = setInterval(@draw_step,10)
-
-@draw_step = () ->
-	@height_map.step()
-	@draw()
-	if !@height_map.remaining()
-		clearInterval(@interval_id)
-
-@draw_reset = () ->
-	@height_map.reset()
-	@draw()
 
 # Given a function `f`, chain will return a new function that
 # is identical except that, if no value is returned, `this` will be 
@@ -64,6 +49,27 @@ start_y       = 48
 @chain = (f) ->
 	() ->
 		f.apply(this, arguments)||this
+
+# If there are any operations left in `height_map`'s queue then
+# use `setInterval` to call the `draw_step` function once every 100 milliseconds
+@draw_run = () ->
+	if @height_map.remaining()
+		@interval_id = setInterval(@draw_step,100)
+
+# Call `height_map.step()`, which progresses terrain generation by a single
+# diamond and square step, and then draw the results on the canvas with the 
+# `draw()` function. If there are no operations left in `height_map`'s queue then
+# use clearInterval to stop calling `draw_step`.
+@draw_step = () ->
+	@height_map.step()
+	@draw()
+	if !@height_map.remaining()
+		clearInterval(@interval_id)
+
+# Reset `height_map` and draw the results.
+@draw_reset = () ->
+	@height_map.reset()
+	@draw()
 		
 # Clear the canvas and then go through each tile and draw it.
 
@@ -72,60 +78,37 @@ start_y       = 48
 	for y in [0..size-1]
 		for x in  [0..size-1]
 			@draw_tile(x,y)
-	# for y in [0..size]
-	# 	for x in [0..size]
-	# 		@draw_point(x,y)
 	null
 
-# Draw an individual point
-
-@draw_point = (x,y) ->
-	point_height = @scale_height(@height_map.get_cell(x,y))
-	console.log(point_height)
-	if point_height?
-		x_position = start_x + (x * tile_width  / 2) - (y * tile_width  / 2)
-		y_position = start_y + (x * tile_height / 2) + (y * tile_height / 2)
-		@context
-			.beginPath()
-			.set("fillStyle","#000000")
-			.arc(x_position - 1, y_position - 1 - point_height, 2, 0, Math.PI*2, true)
-			.fill()
-			.closePath()
-
-# Draw an individual tile.
+# Draw an individual tile on an isometric grid.
 
 @draw_tile = (x,y) ->
+	# The `tile` function returns a hash containing four keys, nw, ne, sw, se, each 
+	# with an associated height value.
 	tile = @height_map.tile(x,y)
-	# Modify the values for display
+	# For each of these height values, scale it so that it looks good when displayed.
 	for point, height of tile
 		tile[point] = @scale_height(height)
+	# The location of each tile is based on an isometric grid.
+	#
+	# As `x` increases the tile moves along the row, diagonally down and to the right, increasing x and increasing y.
+	# As `y` increases the tile moves along the column, diagonally down and to the left, decreasing x and increasing y.
+	# If `x` and `y` increase at the same rate then the tile moves straight downward, leaving x as it is and increasing y.
 	x_position = start_x + (x * tile_width  / 2) - (y * tile_width  / 2)
 	y_position = start_y + (x * tile_height / 2) + (y * tile_height / 2)
-	# Draw a starting position
+	# Draw the tile as two polygons, a polygon for the back triangle, NW -> NE -> SW -> NW
 	@context
 		.beginPath()
-		.set("strokeStyle", "rgba(0,0,0,0.1)")
-		.moveTo(x_position, y_position)
-		.lineTo(x_position + tile_width / 2, y_position + tile_height / 2)
-		.lineTo(x_position, y_position + tile_height)
-		.lineTo(x_position - tile_width / 2, y_position + tile_height / 2)
-		.lineTo(x_position, y_position)
-		.stroke()
-		.closePath()
-	# TODO if there are enough points set, draw polygons
-	# otherwise just draw points
-	#   @draw_polygons tile
-	@context
-		.beginPath()
-		.set("fillStyle", @color(tile.nw, (tile.ne + tile.sw) / 2))
+		.set("fillStyle", @colour(tile.nw, (tile.ne + tile.sw) / 2))
 		.moveTo(x_position                 , y_position - tile.nw)
 		.lineTo(x_position + tile_width / 2, y_position - tile.ne + tile_height / 2)
 		.lineTo(x_position - tile_width / 2, y_position - tile.sw + tile_height / 2)
 		.fill()
 		.closePath()
+	# and a polygon for the front triangle, SE -> NE -> SW -> SE
 	@context
 		.beginPath()
-		.set("fillStyle", @color((tile.ne + tile.sw) / 2, tile.se))
+		.set("fillStyle", @colour((tile.ne + tile.sw) / 2, tile.se))
 		.moveTo(x_position                 , y_position - tile.se + tile_height)
 		.lineTo(x_position + tile_width / 2, y_position - tile.ne + tile_height / 2)
 		.lineTo(x_position - tile_width / 2, y_position - tile.sw + tile_height / 2)
@@ -133,7 +116,8 @@ start_y       = 48
 	  .closePath()
 	tile
 
-#@draw_polygon = (tile) ->
+# Given a height value, multiply it by the `multiplier` to get a bigger or smaller value.
+# This is just to make the visualisation look better.
 
 @scale_height = (h) ->
 	if h?
@@ -141,7 +125,9 @@ start_y       = 48
 	else
 		null
 
-@color = (top, bottom) ->
+# Based on the ratio between `top` and `bottom`, return a color.
+
+@colour = (top, bottom) ->
 	r = Math.floor(((top - bottom) * 2.5) + 150)
 	g = 191
 	b = 64
