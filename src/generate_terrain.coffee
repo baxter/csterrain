@@ -30,13 +30,7 @@ class @HeightMap
 		@set_sw @mid_value
 		@set_se @mid_value
 
-		@push {
-			start_x:     0,
-			start_y:     0,
-			end_x:       @size - 1,
-			end_y:       @size - 1,
-			base_height: @mid_value
-		}
+		@push => @diamond_square( 0, 0, @size - 1, @size - 1, @mid_value )
 	
 	# Get the value of the point at [x, y].
 	get_cell: (x, y) ->
@@ -85,14 +79,7 @@ class @HeightMap
 	# and running the diamon_dquare algorithm with those values as
 	# parameters.
 	step: () ->
-		s = @pop()
-		@diamond_square(
-			s.start_x,
-			s.start_y,
-			s.end_x,
-			s.end_y,
-			s.base_height
-		)
+		@pop()()
 	
 	# Keep calling step() until there's nothing left in the queue.
 	run: () ->
@@ -135,10 +122,10 @@ class @HeightMap
 		if (right - left) > 2
 			base_height = Math.floor base_height * Math.pow 2.0, -0.75
 			
-			@push { start_x: left,     start_y: top,      end_x: x_centre, end_y: y_centre, base_height: base_height }
-			@push { start_x: x_centre, start_y: top,      end_x: right,    end_y: y_centre, base_height: base_height }
-			@push { start_x: left,     start_y: y_centre, end_x: x_centre, end_y: bottom,   base_height: base_height }
-			@push { start_x: x_centre, start_y: y_centre, end_x: right,    end_y: bottom,   base_height: base_height }
+			@push => @diamond_square( left, top, x_centre, y_centre, base_height )
+			@push => @diamond_square( x_centre, top, right, y_centre, base_height )
+			@push => @diamond_square( left, y_centre, x_centre, bottom, base_height )
+			@push => @diamond_square( x_centre, y_centre, right, bottom, base_height )
 	
 	# This is a helper function that returns an object representing four points.
 	tile: (x, y) ->
